@@ -4,18 +4,20 @@ pub mod client;
 pub mod credentials;
 pub mod util;
 
-use auth::{
-    token::{
-        cache::{HttpCache, PubKeys},
-        error::TokenVerificationError,
-        EmulatedTokenVerifier, LiveTokenVerifier, GOOGLE_COOKIE_PUB_KEY_URI, GOOGLE_PUB_KEY_URI,
-    },
-    FirebaseAuth,
+#[cfg(feature = "token")]
+use auth::token::{
+    cache::{ HttpCache, PubKeys },
+    error::TokenVerificationError,
+    EmulatedTokenVerifier,
+    LiveTokenVerifier,
+    GOOGLE_COOKIE_PUB_KEY_URI,
+    GOOGLE_PUB_KEY_URI,
 };
+use auth::FirebaseAuth;
 use client::ReqwestApiClient;
 use credentials::emulator::EmulatorCredentials;
-pub use credentials::{error::CredentialsError, Credentials};
-use error_stack::{Report, ResultExt};
+pub use credentials::{ error::CredentialsError, Credentials };
+use error_stack::{ Report, ResultExt };
 pub use gcp_auth::provider as credentials_provider;
 use gcp_auth::TokenProvider;
 use std::sync::Arc;
@@ -49,6 +51,7 @@ impl App<EmulatorCredentials> {
     }
 
     /// OIDC token verifier for emulator
+    #[cfg(feature = "token")]
     pub fn id_token_verifier(&self) -> EmulatedTokenVerifier {
         EmulatedTokenVerifier::new(self.project_id.clone())
     }
@@ -61,11 +64,10 @@ impl App<GcpCredentials> {
     }
 
     pub async fn live_shared(
-        credentials: GcpCredentials,
+        credentials: GcpCredentials
     ) -> Result<Self, Report<CredentialsError>> {
         let project_id = credentials
-            .project_id()
-            .await
+            .project_id().await
             .change_context(CredentialsError::Internal)?
             .to_string();
 
@@ -83,41 +85,37 @@ impl App<GcpCredentials> {
     }
 
     /// Create OIDC token verifier
+    #[cfg(feature = "token")]
     pub async fn id_token_verifier(
-        &self,
+        &self
     ) -> Result<
         LiveTokenVerifier<HttpCache<reqwest::Client, PubKeys>>,
-        Report<TokenVerificationError>,
+        Report<TokenVerificationError>
     > {
         let cache_client = HttpCache::new(
             reqwest::Client::new(),
-            GOOGLE_PUB_KEY_URI
-                .parse()
+            GOOGLE_PUB_KEY_URI.parse()
                 .map_err(error_stack::Report::new)
-                .change_context(TokenVerificationError::FailedGettingKeys)?,
-        )
-        .await
-        .change_context(TokenVerificationError::FailedGettingKeys)?;
+                .change_context(TokenVerificationError::FailedGettingKeys)?
+        ).await.change_context(TokenVerificationError::FailedGettingKeys)?;
 
         LiveTokenVerifier::new_id_verifier(self.project_id.clone(), cache_client)
     }
 
     /// Create cookie token verifier
+    #[cfg(feature = "token")]
     pub async fn cookie_token_verifier(
-        &self,
+        &self
     ) -> Result<
         LiveTokenVerifier<HttpCache<reqwest::Client, PubKeys>>,
-        Report<TokenVerificationError>,
+        Report<TokenVerificationError>
     > {
         let cache_client = HttpCache::new(
             reqwest::Client::new(),
-            GOOGLE_COOKIE_PUB_KEY_URI
-                .parse()
+            GOOGLE_COOKIE_PUB_KEY_URI.parse()
                 .map_err(error_stack::Report::new)
-                .change_context(TokenVerificationError::FailedGettingKeys)?,
-        )
-        .await
-        .change_context(TokenVerificationError::FailedGettingKeys)?;
+                .change_context(TokenVerificationError::FailedGettingKeys)?
+        ).await.change_context(TokenVerificationError::FailedGettingKeys)?;
 
         LiveTokenVerifier::new_cookie_verifier(self.project_id.clone(), cache_client)
     }

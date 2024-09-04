@@ -6,22 +6,23 @@ mod test;
 pub mod claims;
 pub mod import;
 pub mod oob_code;
+#[cfg(feature = "token")]
 pub mod token;
 
-use crate::api_uri::{ApiUriBuilder, FirebaseAuthEmulatorRestApi, FirebaseAuthRestApi};
+use crate::api_uri::{ ApiUriBuilder, FirebaseAuthEmulatorRestApi, FirebaseAuthRestApi };
 use crate::client::error::ApiClientError;
 use crate::client::ApiHttpClient;
-use crate::util::{I128EpochMs, StrEpochMs, StrEpochSec};
+use crate::util::{ I128EpochMs, StrEpochMs, StrEpochSec };
 pub use claims::Claims;
 use error_stack::Report;
 use http::Method;
-pub use import::{UserImportRecord, UserImportRecords};
-use oob_code::{OobCodeAction, OobCodeActionLink, OobCodeActionType};
-use serde::{Deserialize, Serialize};
+pub use import::{ UserImportRecord, UserImportRecords };
+use oob_code::{ OobCodeAction, OobCodeActionLink, OobCodeActionType };
+use serde::{ Deserialize, Serialize };
 use std::collections::BTreeMap;
 use std::future::Future;
 use std::vec;
-use time::{Duration, OffsetDateTime};
+use time::{ Duration, OffsetDateTime };
 
 const FIREBASE_AUTH_REST_AUTHORITY: &str = "identitytoolkit.googleapis.com";
 
@@ -147,8 +148,10 @@ impl UserIdentifiersBuilder {
     pub fn with_email(mut self, email: String) -> Self {
         match &mut self.ids.email {
             Some(email_vec) => email_vec.push(email),
-            None => self.ids.email = Some(vec![email]),
-        };
+            None => {
+                self.ids.email = Some(vec![email]);
+            }
+        }
 
         self
     }
@@ -156,8 +159,10 @@ impl UserIdentifiersBuilder {
     pub fn with_uid(mut self, uid: String) -> Self {
         match &mut self.ids.uid {
             Some(uid_vec) => uid_vec.push(uid),
-            None => self.ids.uid = Some(vec![uid]),
-        };
+            None => {
+                self.ids.uid = Some(vec![uid]);
+            }
+        }
 
         self
     }
@@ -165,8 +170,10 @@ impl UserIdentifiersBuilder {
     pub fn with_phone_number(mut self, pnumber: String) -> Self {
         match &mut self.ids.phone_number {
             Some(pnumber_vec) => pnumber_vec.push(pnumber),
-            None => self.ids.phone_number = Some(vec![pnumber]),
-        };
+            None => {
+                self.ids.phone_number = Some(vec![pnumber]);
+            }
+        }
 
         self
     }
@@ -248,27 +255,27 @@ impl UserUpdateBuilder {
     pub fn display_name(mut self, value: AttributeOp<String>) -> Self {
         match value {
             AttributeOp::Change(new_display_name) => {
-                self.update.display_name = Some(new_display_name)
+                self.update.display_name = Some(new_display_name);
             }
-            AttributeOp::Delete => self
-                .update
-                .delete_attribute
-                .get_or_insert(Vec::new())
-                .push(DeleteAttribute::DisplayName),
-        };
+            AttributeOp::Delete =>
+                self.update.delete_attribute
+                    .get_or_insert(Vec::new())
+                    .push(DeleteAttribute::DisplayName),
+        }
 
         self
     }
 
     pub fn photo_url(mut self, value: AttributeOp<String>) -> Self {
         match value {
-            AttributeOp::Change(new_photo_url) => self.update.photo_url = Some(new_photo_url),
-            AttributeOp::Delete => self
-                .update
-                .delete_attribute
-                .get_or_insert(Vec::new())
-                .push(DeleteAttribute::PhotoUrl),
-        };
+            AttributeOp::Change(new_photo_url) => {
+                self.update.photo_url = Some(new_photo_url);
+            }
+            AttributeOp::Delete =>
+                self.update.delete_attribute
+                    .get_or_insert(Vec::new())
+                    .push(DeleteAttribute::PhotoUrl),
+        }
 
         self
     }
@@ -276,14 +283,11 @@ impl UserUpdateBuilder {
     pub fn phone_number(mut self, value: AttributeOp<String>) -> Self {
         match value {
             AttributeOp::Change(new_phone_number) => {
-                self.update.phone_number = Some(new_phone_number)
+                self.update.phone_number = Some(new_phone_number);
             }
-            AttributeOp::Delete => self
-                .update
-                .delete_provider
-                .get_or_insert(Vec::new())
-                .push(DeleteProvider::Phone),
-        };
+            AttributeOp::Delete =>
+                self.update.delete_provider.get_or_insert(Vec::new()).push(DeleteProvider::Phone),
+        }
 
         self
     }
@@ -354,12 +358,10 @@ pub trait FirebaseAuthService<C: ApiHttpClient>: Send + Sync + 'static {
     /// ```
     fn create_user(
         &self,
-        user: NewUser,
+        user: NewUser
     ) -> impl Future<Output = Result<User, Report<ApiClientError>>> + Send {
         let client = self.get_client();
-        let uri = self
-            .get_auth_uri_builder()
-            .build(FirebaseAuthRestApi::CreateUser);
+        let uri = self.get_auth_uri_builder().build(FirebaseAuthRestApi::CreateUser);
 
         client.send_request_body(uri, Method::POST, user, &FIREBASE_AUTH_SCOPES)
     }
@@ -376,7 +378,7 @@ pub trait FirebaseAuthService<C: ApiHttpClient>: Send + Sync + 'static {
     /// ```
     fn get_user(
         &self,
-        indentifiers: UserIdentifiers,
+        indentifiers: UserIdentifiers
     ) -> impl Future<Output = Result<Option<User>, Report<ApiClientError>>> + Send {
         async move {
             if let Some(users) = self.get_users(indentifiers).await? {
@@ -400,20 +402,18 @@ pub trait FirebaseAuthService<C: ApiHttpClient>: Send + Sync + 'static {
     /// ```
     fn get_users(
         &self,
-        indentifiers: UserIdentifiers,
+        indentifiers: UserIdentifiers
     ) -> impl Future<Output = Result<Option<Vec<User>>, Report<ApiClientError>>> + Send {
         async move {
             let client = self.get_client();
             let uri_builder = self.get_auth_uri_builder();
 
-            let users: Users = client
-                .send_request_body(
-                    uri_builder.build(FirebaseAuthRestApi::GetUsers),
-                    Method::POST,
-                    indentifiers,
-                    &FIREBASE_AUTH_SCOPES,
-                )
-                .await?;
+            let users: Users = client.send_request_body(
+                uri_builder.build(FirebaseAuthRestApi::GetUsers),
+                Method::POST,
+                indentifiers,
+                &FIREBASE_AUTH_SCOPES
+            ).await?;
 
             Ok(users.users)
         }
@@ -438,7 +438,7 @@ pub trait FirebaseAuthService<C: ApiHttpClient>: Send + Sync + 'static {
     fn list_users(
         &self,
         users_per_page: usize,
-        prev: Option<UserList>,
+        prev: Option<UserList>
     ) -> impl Future<Output = Result<Option<UserList>, Report<ApiClientError>>> + Send {
         async move {
             let client = self.get_client();
@@ -453,14 +453,12 @@ pub trait FirebaseAuthService<C: ApiHttpClient>: Send + Sync + 'static {
                 }
             }
 
-            let users: UserList = client
-                .send_request_with_params(
-                    uri_builder.build(FirebaseAuthRestApi::ListUsers),
-                    params.into_iter(),
-                    Method::GET,
-                    &FIREBASE_AUTH_SCOPES,
-                )
-                .await?;
+            let users: UserList = client.send_request_with_params(
+                uri_builder.build(FirebaseAuthRestApi::ListUsers),
+                params.into_iter(),
+                Method::GET,
+                &FIREBASE_AUTH_SCOPES
+            ).await?;
 
             Ok(Some(users))
         }
@@ -469,20 +467,18 @@ pub trait FirebaseAuthService<C: ApiHttpClient>: Send + Sync + 'static {
     /// Delete user with given ID
     fn delete_user(
         &self,
-        uid: String,
+        uid: String
     ) -> impl Future<Output = Result<(), Report<ApiClientError>>> + Send {
         async move {
             let client = self.get_client();
             let uri_builder = self.get_auth_uri_builder();
 
-            client
-                .send_request_body_empty_response(
-                    uri_builder.build(FirebaseAuthRestApi::DeleteUser),
-                    Method::POST,
-                    UserId { uid },
-                    &FIREBASE_AUTH_SCOPES,
-                )
-                .await
+            client.send_request_body_empty_response(
+                uri_builder.build(FirebaseAuthRestApi::DeleteUser),
+                Method::POST,
+                UserId { uid },
+                &FIREBASE_AUTH_SCOPES
+            ).await
         }
     }
 
@@ -490,20 +486,18 @@ pub trait FirebaseAuthService<C: ApiHttpClient>: Send + Sync + 'static {
     fn delete_users(
         &self,
         uids: Vec<String>,
-        force: bool,
+        force: bool
     ) -> impl Future<Output = Result<(), Report<ApiClientError>>> + Send {
         async move {
             let client = self.get_client();
             let uri_builder = self.get_auth_uri_builder();
 
-            client
-                .send_request_body_empty_response(
-                    uri_builder.build(FirebaseAuthRestApi::DeleteUsers),
-                    Method::POST,
-                    UserIds { uids, force },
-                    &FIREBASE_AUTH_SCOPES,
-                )
-                .await
+            client.send_request_body_empty_response(
+                uri_builder.build(FirebaseAuthRestApi::DeleteUsers),
+                Method::POST,
+                UserIds { uids, force },
+                &FIREBASE_AUTH_SCOPES
+            ).await
         }
     }
 
@@ -519,20 +513,18 @@ pub trait FirebaseAuthService<C: ApiHttpClient>: Send + Sync + 'static {
     /// ```
     fn update_user(
         &self,
-        update: UserUpdate,
+        update: UserUpdate
     ) -> impl Future<Output = Result<User, Report<ApiClientError>>> + Send {
         async move {
             let client = self.get_client();
             let uri_builder = self.get_auth_uri_builder();
 
-            client
-                .send_request_body(
-                    uri_builder.build(FirebaseAuthRestApi::UpdateUser),
-                    Method::POST,
-                    update,
-                    &FIREBASE_AUTH_SCOPES,
-                )
-                .await
+            client.send_request_body(
+                uri_builder.build(FirebaseAuthRestApi::UpdateUser),
+                Method::POST,
+                update,
+                &FIREBASE_AUTH_SCOPES
+            ).await
         }
     }
 
@@ -549,20 +541,18 @@ pub trait FirebaseAuthService<C: ApiHttpClient>: Send + Sync + 'static {
     /// ```
     fn import_users(
         &self,
-        users: Vec<UserImportRecord>,
+        users: Vec<UserImportRecord>
     ) -> impl Future<Output = Result<(), Report<ApiClientError>>> + Send {
         async move {
             let client = self.get_client();
             let uri_builder = self.get_auth_uri_builder();
 
-            client
-                .send_request_body_empty_response(
-                    uri_builder.build(FirebaseAuthRestApi::ImportUsers),
-                    Method::POST,
-                    UserImportRecords { users },
-                    &FIREBASE_AUTH_SCOPES,
-                )
-                .await?;
+            client.send_request_body_empty_response(
+                uri_builder.build(FirebaseAuthRestApi::ImportUsers),
+                Method::POST,
+                UserImportRecords { users },
+                &FIREBASE_AUTH_SCOPES
+            ).await?;
 
             Ok(())
         }
@@ -580,20 +570,18 @@ pub trait FirebaseAuthService<C: ApiHttpClient>: Send + Sync + 'static {
     /// ```
     fn generate_email_action_link(
         &self,
-        oob_action: OobCodeAction,
+        oob_action: OobCodeAction
     ) -> impl Future<Output = Result<String, Report<ApiClientError>>> + Send {
         async move {
             let client = self.get_client();
             let uri_builder = self.get_auth_uri_builder();
 
-            let oob_link: OobCodeActionLink = client
-                .send_request_body(
-                    uri_builder.build(FirebaseAuthRestApi::SendOobCode),
-                    Method::POST,
-                    oob_action,
-                    &FIREBASE_AUTH_SCOPES,
-                )
-                .await?;
+            let oob_link: OobCodeActionLink = client.send_request_body(
+                uri_builder.build(FirebaseAuthRestApi::SendOobCode),
+                Method::POST,
+                oob_action,
+                &FIREBASE_AUTH_SCOPES
+            ).await?;
 
             Ok(oob_link.oob_link)
         }
@@ -604,7 +592,7 @@ pub trait FirebaseAuthService<C: ApiHttpClient>: Send + Sync + 'static {
     fn create_session_cookie(
         &self,
         id_token: String,
-        expires_in: Duration,
+        expires_in: Duration
     ) -> impl Future<Output = Result<String, Report<ApiClientError>>> + Send {
         async move {
             let client = self.get_client();
@@ -615,14 +603,12 @@ pub trait FirebaseAuthService<C: ApiHttpClient>: Send + Sync + 'static {
                 valid_duration: expires_in.whole_seconds(),
             };
 
-            let session_cookie: SessionCookie = client
-                .send_request_body(
-                    uri_builder.build(FirebaseAuthRestApi::CreateSessionCookie),
-                    Method::POST,
-                    create_cookie,
-                    &FIREBASE_AUTH_SCOPES,
-                )
-                .await?;
+            let session_cookie: SessionCookie = client.send_request_body(
+                uri_builder.build(FirebaseAuthRestApi::CreateSessionCookie),
+                Method::POST,
+                create_cookie,
+                &FIREBASE_AUTH_SCOPES
+            ).await?;
 
             Ok(session_cookie.session_cookie)
         }
@@ -670,9 +656,7 @@ pub struct SmsVerificationCodes {
 }
 
 pub trait FirebaseEmulatorAuthService<ApiHttpClientT>
-where
-    Self: Send + Sync,
-    ApiHttpClientT: ApiHttpClient + Send + Sync,
+    where Self: Send + Sync, ApiHttpClientT: ApiHttpClient + Send + Sync
 {
     fn get_emulator_client(&self) -> &ApiHttpClientT;
     fn get_emulator_auth_uri_builder(&self) -> &ApiUriBuilder;
@@ -683,13 +667,11 @@ where
             let client = self.get_emulator_client();
             let uri_builder = self.get_emulator_auth_uri_builder();
 
-            let _result: BTreeMap<String, String> = client
-                .send_request(
-                    uri_builder.build(FirebaseAuthEmulatorRestApi::ClearUserAccounts),
-                    Method::DELETE,
-                    &FIREBASE_AUTH_SCOPES,
-                )
-                .await?;
+            let _result: BTreeMap<String, String> = client.send_request(
+                uri_builder.build(FirebaseAuthEmulatorRestApi::ClearUserAccounts),
+                Method::DELETE,
+                &FIREBASE_AUTH_SCOPES
+            ).await?;
 
             Ok(())
         }
@@ -697,57 +679,51 @@ where
 
     /// Get current emulator configuration
     fn get_emulator_configuration(
-        &self,
+        &self
     ) -> impl Future<Output = Result<EmulatorConfiguration, Report<ApiClientError>>> + Send {
         async move {
             let client = self.get_emulator_client();
             let uri_builder = self.get_emulator_auth_uri_builder();
 
-            client
-                .send_request(
-                    uri_builder.build(FirebaseAuthEmulatorRestApi::Configuration),
-                    Method::GET,
-                    &FIREBASE_AUTH_SCOPES,
-                )
-                .await
+            client.send_request(
+                uri_builder.build(FirebaseAuthEmulatorRestApi::Configuration),
+                Method::GET,
+                &FIREBASE_AUTH_SCOPES
+            ).await
         }
     }
 
     /// Update emulator configuration
     fn patch_emulator_configuration(
         &self,
-        configuration: EmulatorConfiguration,
+        configuration: EmulatorConfiguration
     ) -> impl Future<Output = Result<EmulatorConfiguration, Report<ApiClientError>>> + Send {
         async move {
             let client = self.get_emulator_client();
             let uri_builder = self.get_emulator_auth_uri_builder();
 
-            client
-                .send_request_body(
-                    uri_builder.build(FirebaseAuthEmulatorRestApi::Configuration),
-                    Method::PATCH,
-                    configuration,
-                    &FIREBASE_AUTH_SCOPES,
-                )
-                .await
+            client.send_request_body(
+                uri_builder.build(FirebaseAuthEmulatorRestApi::Configuration),
+                Method::PATCH,
+                configuration,
+                &FIREBASE_AUTH_SCOPES
+            ).await
         }
     }
 
     /// Fetch all OOB codes within emulator
     fn get_oob_codes(
-        &self,
+        &self
     ) -> impl Future<Output = Result<Vec<OobCode>, Report<ApiClientError>>> + Send {
         async move {
             let client = self.get_emulator_client();
             let uri_builder = self.get_emulator_auth_uri_builder();
 
-            let oob_codes: OobCodes = client
-                .send_request(
-                    uri_builder.build(FirebaseAuthEmulatorRestApi::OobCodes),
-                    Method::GET,
-                    &FIREBASE_AUTH_SCOPES,
-                )
-                .await?;
+            let oob_codes: OobCodes = client.send_request(
+                uri_builder.build(FirebaseAuthEmulatorRestApi::OobCodes),
+                Method::GET,
+                &FIREBASE_AUTH_SCOPES
+            ).await?;
 
             Ok(oob_codes.oob_codes)
         }
@@ -755,19 +731,17 @@ where
 
     /// Fetch all SMS codes within emulator
     fn get_sms_verification_codes(
-        &self,
+        &self
     ) -> impl Future<Output = Result<SmsVerificationCodes, Report<ApiClientError>>> + Send {
         async move {
             let client = self.get_emulator_client();
             let uri_builder = self.get_emulator_auth_uri_builder();
 
-            client
-                .send_request(
-                    uri_builder.build(FirebaseAuthEmulatorRestApi::SmsVerificationCodes),
-                    Method::GET,
-                    &FIREBASE_AUTH_SCOPES,
-                )
-                .await
+            client.send_request(
+                uri_builder.build(FirebaseAuthEmulatorRestApi::SmsVerificationCodes),
+                Method::GET,
+                &FIREBASE_AUTH_SCOPES
+            ).await
         }
     }
 }
@@ -778,14 +752,12 @@ pub struct FirebaseAuth<ApiHttpClientT> {
     emulator_auth_uri_builder: Option<ApiUriBuilder>,
 }
 
-impl<ApiHttpClientT> FirebaseAuth<ApiHttpClientT>
-where
-    ApiHttpClientT: ApiHttpClient + Send + Sync,
-{
+impl<ApiHttpClientT> FirebaseAuth<ApiHttpClientT> where ApiHttpClientT: ApiHttpClient + Send + Sync {
     /// Create Firebase Authentication manager for emulator
     pub fn emulated(emulator_url: String, project_id: &str, client: ApiHttpClientT) -> Self {
-        let fb_auth_root = emulator_url.clone()
-            + &format!("/{FIREBASE_AUTH_REST_AUTHORITY}/v1/projects/{project_id}");
+        let fb_auth_root =
+            emulator_url.clone() +
+            &format!("/{FIREBASE_AUTH_REST_AUTHORITY}/v1/projects/{project_id}");
         let fb_emu_root = emulator_url + &format!("/emulator/v1/projects/{project_id}");
 
         Self {
@@ -797,9 +769,10 @@ where
 
     /// Create Firebase Authentication manager for live project
     pub fn live(project_id: &str, client: ApiHttpClientT) -> Self {
-        let fb_auth_root = "https://".to_string()
-            + FIREBASE_AUTH_REST_AUTHORITY
-            + &format!("/v1/projects/{project_id}");
+        let fb_auth_root =
+            "https://".to_string() +
+            FIREBASE_AUTH_REST_AUTHORITY +
+            &format!("/v1/projects/{project_id}");
 
         Self {
             client,
@@ -809,9 +782,9 @@ where
     }
 }
 
-impl<ApiHttpClientT> FirebaseAuthService<ApiHttpClientT> for FirebaseAuth<ApiHttpClientT>
-where
-    ApiHttpClientT: ApiHttpClient + Send + Sync,
+impl<ApiHttpClientT> FirebaseAuthService<ApiHttpClientT>
+    for FirebaseAuth<ApiHttpClientT>
+    where ApiHttpClientT: ApiHttpClient + Send + Sync
 {
     fn get_client(&self) -> &ApiHttpClientT {
         &self.client
@@ -822,17 +795,15 @@ where
     }
 }
 
-impl<ApiHttpClientT> FirebaseEmulatorAuthService<ApiHttpClientT> for FirebaseAuth<ApiHttpClientT>
-where
-    ApiHttpClientT: ApiHttpClient + Send + Sync,
+impl<ApiHttpClientT> FirebaseEmulatorAuthService<ApiHttpClientT>
+    for FirebaseAuth<ApiHttpClientT>
+    where ApiHttpClientT: ApiHttpClient + Send + Sync
 {
     fn get_emulator_client(&self) -> &ApiHttpClientT {
         &self.client
     }
 
     fn get_emulator_auth_uri_builder(&self) -> &ApiUriBuilder {
-        self.emulator_auth_uri_builder
-            .as_ref()
-            .expect("Auth emulator URI builder is unset")
+        self.emulator_auth_uri_builder.as_ref().expect("Auth emulator URI builder is unset")
     }
 }

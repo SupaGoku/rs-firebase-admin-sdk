@@ -1,5 +1,4 @@
 use super::import::{PasswordHash, UserImportRecord};
-use super::token::jwt::JWToken;
 use super::{
     AttributeOp, Claims, FirebaseAuth, FirebaseAuthService, FirebaseEmulatorAuthService, NewUser,
     OobCode, OobCodeAction, OobCodeActionType, UserIdentifiers, UserList, UserUpdate,
@@ -7,10 +6,12 @@ use super::{
 use crate::client::ReqwestApiClient;
 use crate::credentials::emulator::EmulatorCredentials;
 use crate::App;
+#[cfg(feature = "token")]
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use serial_test::serial;
 use std::collections::BTreeMap;
+#[cfg(feature = "token")]
 use time::Duration;
 use tokio;
 
@@ -18,6 +19,7 @@ fn get_auth_service() -> FirebaseAuth<ReqwestApiClient<EmulatorCredentials>> {
     App::emulated("demo-firebase-project".into()).auth("http://emulator:9099".parse().unwrap())
 }
 
+#[cfg(feature = "token")]
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 struct LoginReq {
@@ -26,12 +28,14 @@ struct LoginReq {
     pub return_secure_token: bool,
 }
 
+#[cfg(feature = "token")]
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct LoginResp {
     pub id_token: String,
 }
 
+#[cfg(feature = "token")]
 async fn _login(email: String, password: String) -> String {
     let client = reqwest::Client::builder().build().unwrap();
     let resp = client.post("http://emulator:9099/identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=123")
@@ -521,9 +525,11 @@ async fn test_generate_email_action_link() {
     auth.clear_all_users().await.unwrap();
 }
 
+#[cfg(feature = "token")]
 #[tokio::test]
 #[serial]
 async fn test_create_session_cookie() {
+    use super::token::jwt::JWToken;
     let auth = get_auth_service();
 
     auth.create_user(NewUser::email_and_password(
